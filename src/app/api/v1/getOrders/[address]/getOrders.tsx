@@ -47,10 +47,10 @@ export async function getOrders(queryAddress: string) {
       making_amount: row.making_amount
     }));
 
-    return { buyOrders, sellOrders, request: request };
+    return { buyOrders, sellOrders };
 
   } catch (error) {
     console.error('Database query failed:', error);
-    throw new Error('Failed to fetch orders from database');
+    throw new Error(`Error: ${error}`);
   }
 }
