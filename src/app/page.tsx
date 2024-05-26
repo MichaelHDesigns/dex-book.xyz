@@ -1,113 +1,229 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from 'react';
+import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
+import { useWallet, WalletProvider, ConnectionProvider } from '@solana/wallet-adapter-react';
+import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
+import '@solana/wallet-adapter-react-ui/styles.css';
+import bs58 from 'bs58';
+import { PublicKey } from '@solana/web3.js';
+import Image from 'next/image';
+import solanaLogo from './solanaLogo.png';
+
+const Home = () => {
+  const { wallet } = useWallet();
+  const [address, setAddress] = useState('');
+  const [userMessage, setUserMessage] = useState('');
+  const [response, setResponse] = useState(null);
+  const [msg, setMsg] = useState('');
+  const { publicKey, signMessage } = useWallet();
+  const [currentPage, setCurrentPage] = useState(1);
+  const ordersPerPage = 10;
+
+  const handleAddressChange = (e) => setAddress(e.target.value);
+
+  const handleUserMessageChange = (e) => setUserMessage(e.target.value);
+
+  const getCurrentTimestamp = () => {
+    const now = new Date();
+    now.setSeconds(0, 0);
+    return now;
+  };
+
+  const handleGetLimitOrders = async () => {
+    if (!address || !publicKey) {
+      alert('Please enter a token address and connect your wallet');
+      return;
+    }
+
+    try {
+      const defaultMsg = `Welcome to DEX-Book!\n\nToken Address: ${address}\n\nTimestamp: ${getCurrentTimestamp()}`;
+      const encodedMessage = new TextEncoder().encode(defaultMsg);
+      const signature = await signMessage(encodedMessage);
+      const signatureBase58 = bs58.encode(signature);
+      const response = await fetch(`/api/v1/getOrders/${address}/${signatureBase58}`);
+      const data = await response.json();
+      setResponse(data.response);
+      setMsg(defaultMsg);
+      setCurrentPage(1);
+      // Save wallet information to localStorage
+      localStorage.setItem('wallet', JSON.stringify(publicKey.toBase58()));
+    } catch (error) {
+      console.error('Error signing message:', error);
+    }
+  };
+
+  useEffect(() => {
+    console.log('Updated response:', response);
+  }, [response]);
+
+   useEffect(() => {
+    const storedWallet = localStorage.getItem('wallet');
+    if (storedWallet) {
+      // The wallet will automatically connect if autoConnect is enabled
+      localStorage.setItem('wallet', storedWallet);
+    }
+  }, []);
+
+  const indexOfLastBuyOrder = currentPage * ordersPerPage;
+  const indexOfFirstBuyOrder = indexOfLastBuyOrder - ordersPerPage;
+  const currentBuyOrders = response?.buyOrders ? response.buyOrders.slice(indexOfFirstBuyOrder, indexOfLastBuyOrder) : [];
+
+  const indexOfLastSellOrder = currentPage * ordersPerPage;
+  const indexOfFirstSellOrder = indexOfLastSellOrder - ordersPerPage;
+  const currentSellOrders = response?.sellOrders ? response.sellOrders.slice(indexOfFirstSellOrder, indexOfLastSellOrder) : [];
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
+    <main className="flex min-h-screen flex-col items-center justify-between p-4 lg:p-24 bg-gray-800">
+      <div className="w-full lg:max-w-5xl flex justify-start items-center space-x-4">
+    {/*    <div className="h-16 w-16 relative">
+         <Image src={solanaLogo} alt="Solana Logo" layout="fill" objectFit="contain" />
+        </div> */}
+      </div>
+                <div className="flex justify-center">
+                    <h1 className="flex justify-center mb-3 text-xl lg:text-5xl text-white-500 font-semibold">
+                        DEX-Book
+                    </h1>
+                </div>
+      <div className="mb-8 w-full lg:w-full lg:max-w-5xl">
+        <div className="group rounded-lg border border-transparent px-5 py-4 transition-colors">
+          <h2 className="flex justify-center mb-3 text-xl lg:text-2xl text-white-500 font-semibold">
+            Token Address
+          </h2>
+          <div className="flex justify-center">
+            <input
+              type="text"
+              value={address}
+              onChange={handleAddressChange}
+              className="w-1/2 p-2 border rounded text-black mb-4"
+              placeholder="Enter token address"
             />
-          </a>
+          </div>
+          <br />
+          <div className="flex justify-center">
+            <WalletMultiButton />
+          </div>
+          <br />
+          <div className="flex justify-center">
+            <button
+              onClick={handleGetLimitOrders}
+              className="max-w-xs mt-4 bg-blue-500 text-white p-2 rounded hover:bg-white hover:text-blue-500"
+            >
+<i></i>
+              Get Limit Orders
+            </button>
+          </div>
         </div>
       </div>
-
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+      {msg && (
+        <div className="w-full lg:w-full lg:max-w-5xl">
+          <h3 className="flex justify-center text-lg lg:text-xl font-semibold text-white-500">Message</h3>
+          <br />
+          <p className="flex justify-center text-md lg:text-lg text-white">{msg}</p>
+        </div>
+      )}
+      <br />
+      <br />
+      <br />
+      {response && (
+        <div className="w-full lg:w-full lg:max-w-5xl border border-blue-300 p-5 electric-border">
+          <br />
+          <br />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-8">
+            <div>
+              <h4 className="flex justify-center text-xl lg:text-2xl font-semibold text-green-500 mb-2">Buy Orders</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full table-fixed mt-4 border-collapse border border-gray-300">
+                  <thead>
+                    <tr>
+                      <th className="w-1/5 border border-gray-300 p-2">Amount</th>
+                      <th className="w-1/5 border border-gray-300 p-2">Total</th>
+                      <th className="w-1/5 border border-gray-300 p-2">Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentBuyOrders.map((item, index) => (
+                      <tr key={index}>
+                        <td className="w-1/2 border border-gray-300 p-2 text-right text-xs text-green-500">{item.SellAmount}</td>
+                        <td className="w-1/2 border border-gray-300 p-2 text-right text-xs text-green-500">{item.BuyAmount}</td>
+                        <td className="w-1/2 border border-gray-300 p-2 text-right text-xs text-green-500">{item.Exchange}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div>
+              <h4 className="flex justify-center text-xl lg:text-2xl font-semibold text-red-500 mb-2">Sell Orders</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full table-fixed mt-4 border-collapse border border-gray-300">
+                  <thead>
+                    <tr>
+                      <th className="w-1/5 border border-gray-300 p-2">Price</th>
+                      <th className="w-1/5 border border-gray-300 p-2">Total</th>
+                      <th className="w-1/5 border border-gray-300 p-2">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentSellOrders.map((item, index) => (
+                      <tr key={index}>
+                        <td className="w-1/2 border border-gray-300 p-2 text-right text-xs text-red-500">{item.Exchange}</td>
+                        <td className="w-1/2 border border-gray-300 p-2 text-right text-xs text-red-500">{item.SellAmount}</td>
+                        <td className="w-1/2 border border-gray-300 p-2 text-right text-xs text-red-500">{item.BuyAmount}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <br />
+          <br />
+          <div className="flex justify-center">
+            <button
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="bg-blue-500 text-white p-2 rounded mr-2 hover:bg-white hover:text-blue-500"
+            >
+<i></i>
+              Back
+            </button>
+            <button
+              onClick={handleGetLimitOrders}
+              className="bg-blue-500 text-white p-2 rounded mr-2 hover:bg-white hover:text-blue-500"
+            >
+<i></i>
+              Refresh
+            </button>
+            <button
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === Math.ceil(response.buyOrders.length / ordersPerPage)}
+              className="bg-blue-500 text-white p-2 rounded mr-2 hover:bg-white hover:text-blue-500"
+            >
+<i></i>
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
-}
+};
+
+const App = () => {
+  const network = WalletAdapterNetwork.Mainnet;
+  const wallets = [new PhantomWalletAdapter(), new SolflareWalletAdapter({ network })];
+
+  return (
+    <ConnectionProvider endpoint={`https://quiet-thrilling-bush.solana-mainnet.quiknode.pro/517007fa157e2a1a8f992d28a500588227d9d6f2/`}>
+      <WalletProvider wallets={wallets} autoConnect>
+        <WalletModalProvider>
+          <Home />
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
+  );
+};
+
+export default App;
