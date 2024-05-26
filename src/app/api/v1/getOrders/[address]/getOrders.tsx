@@ -73,7 +73,7 @@ export async function getOrders(queryAddress: string) {
             taking_making: row.taking_making,
             BuyAmount: `${row.taking_amount} ${takingSymbol}`,
             SellAmount: `${row.making_amount} ${makingSymbol}`,
-            Exchange: `${row.taking_making} ${takingSymbol}/${makingSymbol}`
+            Exchange: `${row.making_taking} ${takingSymbol}/${makingSymbol}`
         };
     }));
 
@@ -88,7 +88,7 @@ export async function getOrders(queryAddress: string) {
             taking_making: row.taking_making,
             BuyAmount: `${row.taking_amount} ${takingSymbol}`,
             SellAmount: `${row.making_amount} ${makingSymbol}`,
-            Exchange: `${row.making_taking} ${makingSymbol}/${takingSymbol}`
+            Exchange: `${row.taking_making} ${makingSymbol}/${takingSymbol}`
         };
     }));
 
