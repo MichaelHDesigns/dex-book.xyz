@@ -18,8 +18,7 @@ const db = mysql2.createPool({
 const CHAOS = '25p2BoNp6qrJH5As6ek6H7Ei495oSkyZd3tGb97sqFmH';
 const CHAOS_THRESHOLD = 1000000000000;
 
-// Solana connection parameters
-const endpoint = 'https://holy-powerful-sea.solana-mainnet.quiknode.pro/efcd822fbc815a7c554bdfbae66bc04bec9463bc/'; // 'https://api.mainnet-beta.solana.com'; //
+const endpoint = 'https://holy-powerful-sea.solana-mainnet.quiknode.pro/efcd822fbc815a7c554bdfbae66bc04bec9463bc/';
 const node = new Connection(endpoint, 'confirmed');
 
 const DELAY_TIME = 250;
@@ -30,7 +29,7 @@ const whitelistedTokens = [
     'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm',
     'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263'
 ]
-  
+
 const blacklistedTokens = [
     'So11111111111111111111111111111111111111112',
     'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',
@@ -61,7 +60,6 @@ export async function getSymbol(address: string): Promise<string> {
 
     const values = [address];
 
-    // Fetch buy orders
     let sql = `
         SELECT token_symbol
         FROM token_metadata
@@ -83,18 +81,11 @@ export async function getSymbol(address: string): Promise<string> {
 }
 
 async function verifySignature(message: string, signature: string, publicKey: string) {
-    // Decode the public key from base58
     const pubKey = new PublicKey(publicKey).toBytes();
-  
-    // Decode the signature from base58
     const signatureUint8 = base58.decode(signature);
-  
-    // Convert the message to a Uint8Array
     const messageUint8 = new TextEncoder().encode(message);
-  
-    // Verify the signature
     return nacl.sign.detached.verify(messageUint8, signatureUint8, pubKey);
-  }
+}
 
 export async function getTokenBalance(address: string, tokenAddress: string, retries = 3) {
     let attempt = 0;
@@ -102,7 +93,6 @@ export async function getTokenBalance(address: string, tokenAddress: string, ret
 
     while (attempt < retries) {
         try {
-            // Get the associated token account address
             await delay(DELAY_TIME);
             const tokenAccounts = await node.getTokenAccountsByOwner(
                 new PublicKey(address),
@@ -120,12 +110,8 @@ export async function getTokenBalance(address: string, tokenAddress: string, ret
             }
 
             const tokenAccountPubkey = tokenAccounts.value[0].pubkey;
-
-            // Fetch the account info
             await delay(DELAY_TIME);
             const tokenAccountInfo = await getAccount(node, tokenAccountPubkey);
-
-            // Return the token balance
             return tokenAccountInfo.amount;
         } catch (err) {
             attempt++;
@@ -134,113 +120,79 @@ export async function getTokenBalance(address: string, tokenAddress: string, ret
         }
     }
 
-    throw Error (`Couldn't get balance of '${address}'`)
-
+    throw Error(`Couldn't get balance of '${address}'`)
 }
 
 export async function getOrders(tokenAddress: string, account: string = '', signature: string = '') {
+    try {
+        let signatureBytes;
 
-  try {
-    let signatureBytes;
+        if (blacklistedTokens.includes(tokenAddress)) {
+            throw Error(`Cannot query for address '${tokenAddress}'`);
+        }
 
-    if (blacklistedTokens.includes(tokenAddress)) {
-        throw Error (`Cannot query for address '${tokenAddress}'`);
-    } 
-    
-    // else if (whitelistedTokens.includes(tokenAddress)) {
-        
-    // }
+        interface OrderRow {
+            taking_mint: string;
+            making_mint: string;
+            making_amount: Number;
+            taking_amount: Number;
+            making_taking: Number;
+            taking_making: Number;
+        }
 
-    // try {
-    //     signatureBytes = base58.decode(signature);
-    // } catch (err) {
-    //     throw Error (`Ugly Signature: ${err}`)
-    // }
-    
-    // const currentTime = ;
+        const values = [tokenAddress];
 
-    // for (let i = 0; i < TIME_TOLERANCE; i++) {
+        let sql = `
+            SELECT making_mint, making_amount, taking_amount, making_taking, taking_making
+            FROM orders_jupoNjAx
+            WHERE taking_mint = ? AND order_status IN ('ACTIVE', 'PARTIAL-FILL')
+            ORDER BY taking_amount ASC
+        `;
+        const [buyOrdersRows, buyFields]: [QueryResult, FieldPacket[]] = await db.query(sql, values);
+        const buyOrdersRowsTyped = buyOrdersRows as Array<OrderRow>;
 
-    // }
+        sql = `
+            SELECT taking_mint, making_amount, taking_amount, making_taking, taking_making
+            FROM orders_jupoNjAx
+            WHERE making_mint = ? AND order_status IN ('ACTIVE', 'PARTIAL-FILL')
+            ORDER BY making_amount DESC
+        `;
+        const [sellOrdersRows, sellFields]: [QueryResult, FieldPacket[]] = await db.query(sql, values);
+        const sellOrdersRowsTyped = sellOrdersRows as Array<OrderRow>;
 
-    // const message = ``
+        const buyOrders = await Promise.all(buyOrdersRowsTyped.map(async row => {
+            const takingSymbol = await getSymbol(row.taking_mint);
+            const makingSymbol = await getSymbol(row.making_mint);
+            return {
+                making_mint: row.making_mint,
+                making_amount: row.making_amount,
+                taking_amount: row.taking_amount,
+                making_taking: row.making_taking,
+                taking_making: row.taking_making,
+                BuyAmount: `${row.taking_amount} ${takingSymbol}`,
+                SellAmount: `${row.making_amount} ${makingSymbol}`,
+                Exchange: `${row.making_taking} ${takingSymbol}/${makingSymbol}`
+            };
+        }));
 
-    // const signer = await verifySignature(message, signature, account);
-    // console.log(signer);
-    // const chaosBalance = Number(await getTokenBalance(signer, CHAOS));
+        const sellOrders = await Promise.all(sellOrdersRowsTyped.map(async row => {
+            const makingSymbol = await getSymbol(row.making_mint);
+            const takingSymbol = await getSymbol(row.taking_mint);
+            return {
+                taking_mint: row.taking_mint,
+                making_amount: row.making_amount,
+                taking_amount: row.taking_amount,
+                making_taking: row.making_taking,
+                taking_making: row.taking_making,
+                BuyAmount: `${row.taking_amount} ${takingSymbol}`,
+                SellAmount: `${row.making_amount} ${makingSymbol}`,
+                Exchange: `${row.taking_making} ${makingSymbol}/${takingSymbol}`
+            };
+        }));
 
-    // if (chaosBalance < CHAOS_THRESHOLD) {
-    //     throw Error (`Insufficient Funds: ${CHAOS_THRESHOLD - chaosBalance} more tokens required.`)
-    // }
+        db.end();
 
-    interface OrderRow {
-        taking_mint: string;
-        making_mint: string;
-        making_amount: Number;
-        taking_amount: Number;
-        making_taking: Number;
-        taking_making: Number;
-        // Add other properties as needed
-    }
-
-    const values = [tokenAddress];
-
-    // Fetch buy orders
-    let sql = `
-        SELECT making_mint, making_amount, taking_amount, making_taking, taking_making
-        FROM orders_jupoNjAx
-        WHERE taking_mint = ? AND order_status IN ('ACTIVE', 'PARTIAL-FILL')
-        ORDER BY taking_amount ASC
-    `;
-    const [buyOrdersRows, buyFields]: [QueryResult, FieldPacket[]] = await db.query(sql, values);
-    const buyOrdersRowsTyped = buyOrdersRows as Array<OrderRow>;
-
-
-    // Fetch sell orders
-    sql = `
-        SELECT taking_mint, making_amount, taking_amount, making_taking, taking_making
-        FROM orders_jupoNjAx
-        WHERE making_mint = ? AND order_status IN ('ACTIVE', 'PARTIAL-FILL')
-        ORDER BY making_amount DESC
-    `;
-
-    const [sellOrdersRows, sellFields]: [QueryResult, FieldPacket[]] = await db.query(sql, values);
-    const sellOrdersRowsTyped = sellOrdersRows as Array<OrderRow>;
-
-    // Process and format the results
-    const buyOrders = await Promise.all(buyOrdersRowsTyped.map(async row => {
-        const takingSymbol = await getSymbol(row.taking_mint);
-        const makingSymbol = await getSymbol(row.making_mint);
-        return {
-            making_mint: row.making_mint,
-            making_amount: row.making_amount,
-            taking_amount: row.taking_amount,
-            making_taking: row.making_taking,
-            taking_making: row.taking_making,
-            BuyAmount: `${row.taking_amount} ${takingSymbol}`,
-            SellAmount: `${row.making_amount} ${makingSymbol}`,
-            Exchange: `${row.making_taking} ${takingSymbol}/${makingSymbol}`
-        };
-    }));
-
-    const sellOrders = await Promise.all(sellOrdersRowsTyped.map(async row => {
-        const makingSymbol = await getSymbol(row.making_mint);
-        const takingSymbol = await getSymbol(row.taking_mint);
-        return {
-            taking_mint: row.taking_mint,
-            making_amount: row.making_amount,
-            taking_amount: row.taking_amount,
-            making_taking: row.making_taking,
-            taking_making: row.taking_making,
-            BuyAmount: `${row.taking_amount} ${takingSymbol}`,
-            SellAmount: `${row.making_amount} ${makingSymbol}`,
-            Exchange: `${row.taking_making} ${makingSymbol}/${takingSymbol}`
-        };
-    }));
-
-    db.end();
-
-    return { buyOrders, sellOrders };
+        return { buyOrders, sellOrders };
 
     } catch (error) {
         console.error('Database query failed:', error);
