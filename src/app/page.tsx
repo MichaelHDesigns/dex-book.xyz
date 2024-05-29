@@ -1,6 +1,6 @@
  "use client";
 
- import { useState, useEffect } from 'react';
+ import { useState, useEffect, ChangeEvent } from 'react';
  import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
  import { useWallet, WalletProvider, ConnectionProvider } from '@solana/wallet-adapter-react';
  import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
@@ -21,8 +21,8 @@
    const [currentPage, setCurrentPage] = useState(1);
    const ordersPerPage = 10;
 
-   const handleAddressChange = (e) => setAddress(e.target.value);
-    const handleUserMessageChange = (e) => setUserMessage(e.target.value);
+  const handleAddressChange = (e: ChangeEvent<HTMLInputElement>) => setAddress(e.target.value);
+    const handleUserMessageChange = (e: ChangeEvent<HTMLInputElement>) => setUserMessage(e.target.value);
 
     const getMinuteTimestamp = () => {
      const now = new Date();
