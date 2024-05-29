@@ -24,11 +24,11 @@
   const handleAddressChange = (e: ChangeEvent<HTMLInputElement>) => setAddress(e.target.value);
     const handleUserMessageChange = (e: ChangeEvent<HTMLInputElement>) => setUserMessage(e.target.value);
 
-    const getMinuteTimestamp = () => {
-     const now = new Date();
-     now.setUTCSeconds(0, 0);
-     return now.toISOString();
-   };
+  const getCurrentTimestamp = () => {
+    const now = new Date();
+    now.setSeconds(0, 0);
+    return now;
+  };
 
   const handleGetLimitOrders = async () => {
     if (!address || !publicKey) {
