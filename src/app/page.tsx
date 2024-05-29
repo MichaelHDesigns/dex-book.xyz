@@ -1,6 +1,6 @@
  "use client";
 
- import { useState, useEffect } from 'react';
+ import { useState, useEffect, ChangeEvent } from 'react';
  import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
  import { useWallet, WalletProvider, ConnectionProvider } from '@solana/wallet-adapter-react';
  import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
