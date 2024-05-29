@@ -11,6 +11,13 @@
  import Image from 'next/image';
  import solanaLogo from './solanaLogo.png';
 
+interface ApiResponse {
+  response: {
+    buyOrders: Order[];
+    sellOrders: Order[];
+  };
+}
+
  const Home = () => {
    const { wallet } = useWallet();
    const [address, setAddress] = useState('');
