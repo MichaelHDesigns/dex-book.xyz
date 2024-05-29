@@ -11,6 +11,12 @@
  import Image from 'next/image';
  import solanaLogo from './solanaLogo.png';
 
+interface Order {
+  SellAmount: string;
+  BuyAmount: string;
+  Exchange: string;
+}
+
 interface ApiResponse {
   response: {
     buyOrders: Order[];
