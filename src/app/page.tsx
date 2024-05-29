@@ -57,13 +57,20 @@ const handleGetLimitOrders = async () => {
     const response = await fetch(apiUrl);
     const data: ApiResponse = await response.json();
 
+    if (!data.response) {
+      console.error('API response does not contain expected structure:', data);
+      return;
+    }
+
+    const { buyOrders = [], sellOrders = [] } = data.response;
+
     const indexOfLastBuyOrder = currentPage * ordersPerPage;
     const indexOfFirstBuyOrder = indexOfLastBuyOrder - ordersPerPage;
-    const currentBuyOrders = data.response.buyOrders.slice(indexOfFirstBuyOrder, indexOfLastBuyOrder);
+    const currentBuyOrders = buyOrders.slice(indexOfFirstBuyOrder, indexOfLastBuyOrder);
 
     const indexOfLastSellOrder = currentPage * ordersPerPage;
     const indexOfFirstSellOrder = indexOfLastSellOrder - ordersPerPage;
-    const currentSellOrders = data.response.sellOrders.slice(indexOfFirstSellOrder, indexOfLastSellOrder);
+    const currentSellOrders = sellOrders.slice(indexOfFirstSellOrder, indexOfLastSellOrder);
 
     setResponse(data.response);
     setBuyOrders(currentBuyOrders);
