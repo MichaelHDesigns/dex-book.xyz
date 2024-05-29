@@ -30,42 +30,56 @@
      return now.toISOString();
    };
 
-   const handleGetLimitOrders = async () => {
-     if (!address || !publicKey) {
-       alert('Please enter a token address and connect your wallet');
-       return;
-     }
+  const handleGetLimitOrders = async () => {
+    if (!address || !publicKey) {
+      alert('Please enter a token address and connect your wallet');
+      return;
+    }
 
-     try {
-       const defaultMsg = `Welcome to DEX-Book!\n\nToken Address: ${address}\n\nTimestamp: ${getMinuteTimestamp()}`;
-       const encodedMessage = new TextEncoder().encode(defaultMsg);
-       const signature = await signMessage(encodedMessage);
-       const signatureBase58 = bs58.encode(signature);
-       console.log(signatureBase58);
-       const response = await fetch(`/api/v1/getOrders/${address}/${signatureBase58}`);
-       const data = await response.json();
-       setResponse(data.response);
-       setMsg(defaultMsg);
-       setCurrentPage(1);
-       // Save wallet information to localStorage
-       localStorage.setItem('wallet', JSON.stringify(publicKey.toBase58()));
-     } catch (error) {
-       console.error('Error signing message:', error);
-     }
-   };
+    try {
+      const defaultMsg = `Welcome to DEX-Book!\n\nToken Address: ${address}\n\nTimestamp: ${getCurrentTimestamp()}`;
+      const encodedMessage = new TextEncoder().encode(defaultMsg);
+      let signatureBase58;
 
-   useEffect(() => {
-     console.log('Updated response:', response);
-   }, [response]);
+      if (signMessage) {
+        const signature = await signMessage(encodedMessage);
+        signatureBase58 = bs58.encode(signature);
+      }
 
-    useEffect(() => {
-     const storedWallet = localStorage.getItem('wallet');
-     if (storedWallet) {
-       // The wallet will automatically connect if autoConnect is enabled
-       localStorage.setItem('wallet', storedWallet);
-     }
-   }, []);
+      const apiUrl = signatureBase58 ? `/api/v1/getOrders/${address}/${publicKey.toBase58()}/${signatureBase58}` : `/api/v1/getOrders/${address}`;
+      
+      const response = await fetch(apiUrl);
+      const data: ApiResponse = await response.json();
 
+      const indexOfLastBuyOrder = currentPage * ordersPerPage;
+      const indexOfFirstBuyOrder = indexOfLastBuyOrder - ordersPerPage;
+      const currentBuyOrders = data.response.buyOrders.slice(indexOfFirstBuyOrder, indexOfLastBuyOrder);
+
+      const indexOfLastSellOrder = currentPage * ordersPerPage;
+      const indexOfFirstSellOrder = indexOfLastSellOrder - ordersPerPage;
+      const currentSellOrders = data.response.sellOrders.slice(indexOfFirstSellOrder, indexOfLastSellOrder);
+
+      setResponse(data.response);
+      setBuyOrders(currentBuyOrders);
+      setSellOrders(currentSellOrders);
+      setMsg(defaultMsg);
+      setCurrentPage(1);
+      localStorage.setItem('wallet', JSON.stringify(publicKey.toBase58()));
+    } catch (error) {
+      console.error('Error signing message:', error);
+    }
+  };
+
+  useEffect(() => {
+    console.log('Updated response:', response);
+  }, [response]);
+
+  useEffect(() => {
+    const storedWallet = localStorage.getItem('wallet');
+    if (storedWallet) {
+      localStorage.setItem('wallet', storedWallet);
+    }
+  }, []);
    const indexOfLastBuyOrder = currentPage * ordersPerPage;
    const indexOfFirstBuyOrder = indexOfLastBuyOrder - ordersPerPage;
    const currentBuyOrders = response?.buyOrders ? response.buyOrders.slice(indexOfFirstBuyOrder, indexOfLastBuyOrder) : [];
