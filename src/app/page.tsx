@@ -42,45 +42,39 @@ const Home = () => {
     return now;
   };
 
-  const handleGetLimitOrders = async () => {
-    if (!address || !publicKey) {
-      alert('Please enter a token address and connect your wallet');
-      return;
-    }
+const handleGetLimitOrders = async () => {
+  if (!address || !publicKey) {
+    alert('Please enter a token address and connect your wallet');
+    return;
+  }
 
-    try {
-      const defaultMsg = `Welcome to DEX-Book!\n\nToken Address: ${address}\n\nTimestamp: ${getCurrentTimestamp()}`;
-      const encodedMessage = new TextEncoder().encode(defaultMsg);
-      let signatureBase58;
+  try {
+    const defaultMsg = `Welcome to DEX-Book!\n\nToken Address: ${address}\n\nTimestamp: ${getCurrentTimestamp()}`;
+    
+    // Create the API URL without signatureBase58
+    const apiUrl = `/api/v1/getOrders/${address}`;
+    
+    const response = await fetch(apiUrl);
+    const data: ApiResponse = await response.json();
 
-      if (signMessage) {
-        const signature = await signMessage(encodedMessage);
-        signatureBase58 = bs58.encode(signature);
-      }
+    const indexOfLastBuyOrder = currentPage * ordersPerPage;
+    const indexOfFirstBuyOrder = indexOfLastBuyOrder - ordersPerPage;
+    const currentBuyOrders = data.response.buyOrders.slice(indexOfFirstBuyOrder, indexOfLastBuyOrder);
 
-      const apiUrl = signatureBase58 ? `/api/v1/getOrders/${address}/${publicKey.toBase58()}/${signatureBase58}` : `/api/v1/getOrders/${address}`;
-      
-      const response = await fetch(apiUrl);
-      const data: ApiResponse = await response.json();
+    const indexOfLastSellOrder = currentPage * ordersPerPage;
+    const indexOfFirstSellOrder = indexOfLastSellOrder - ordersPerPage;
+    const currentSellOrders = data.response.sellOrders.slice(indexOfFirstSellOrder, indexOfLastSellOrder);
 
-      const indexOfLastBuyOrder = currentPage * ordersPerPage;
-      const indexOfFirstBuyOrder = indexOfLastBuyOrder - ordersPerPage;
-      const currentBuyOrders = data.response.buyOrders.slice(indexOfFirstBuyOrder, indexOfLastBuyOrder);
-
-      const indexOfLastSellOrder = currentPage * ordersPerPage;
-      const indexOfFirstSellOrder = indexOfLastSellOrder - ordersPerPage;
-      const currentSellOrders = data.response.sellOrders.slice(indexOfFirstSellOrder, indexOfLastSellOrder);
-
-      setResponse(data.response);
-      setBuyOrders(currentBuyOrders);
-      setSellOrders(currentSellOrders);
-      setMsg(defaultMsg);
-      setCurrentPage(1);
-      localStorage.setItem('wallet', JSON.stringify(publicKey.toBase58()));
-    } catch (error) {
-      console.error('Error signing message:', error);
-    }
-  };
+    setResponse(data.response);
+    setBuyOrders(currentBuyOrders);
+    setSellOrders(currentSellOrders);
+    setMsg(defaultMsg);
+    setCurrentPage(1);
+    localStorage.setItem('wallet', JSON.stringify(publicKey.toBase58()));
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+  }
+};
 
   useEffect(() => {
     console.log('Updated response:', response);
