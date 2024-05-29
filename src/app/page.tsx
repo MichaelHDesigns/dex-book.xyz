@@ -45,7 +45,7 @@ const Home = () => {
       const response = await fetch(`/api/v1/getOrders/${address}`);
       const data = await response.json();
       console.log('API Response:', data); // Log the full response
-      setResponse(data);
+      setResponse(data.response);
       setMsg(defaultMsg);
       setCurrentPage(1);
       // Save wallet information to localStorage
