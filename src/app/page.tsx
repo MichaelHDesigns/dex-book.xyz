@@ -42,7 +42,7 @@
        const signature = await signMessage(encodedMessage);
        const signatureBase58 = bs58.encode(signature);
        console.log(signatureBase58);
-       const response = await fetch(`/api/v1/getOrders/${address}/${signatureBase58}`);
+       const response = await fetch(`/api/v1/getOrders/${address}`);
        const data = await response.json();
        setResponse(data.response);
        setMsg(defaultMsg);
