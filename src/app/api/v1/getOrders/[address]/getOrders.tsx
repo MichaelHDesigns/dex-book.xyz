@@ -192,7 +192,7 @@ export async function getOrders(tokenAddress: string, account: string = '', sign
 
         db.end();
 
-        return { buyOrders, sellOrders };
+        return { response: { buyOrders, sellOrders } };
 
     } catch (error) {
         console.error('Database query failed:', error);
