@@ -1,15 +1,14 @@
- "use client";
+"use client";
 
- import { useState, useEffect, ChangeEvent } from 'react';
- import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
- import { useWallet, WalletProvider, ConnectionProvider } from '@solana/wallet-adapter-react';
- import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
- import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
- import '@solana/wallet-adapter-react-ui/styles.css';
- import bs58 from 'bs58';
- import { PublicKey } from '@solana/web3.js';
- import Image from 'next/image';
- import solanaLogo from './solanaLogo.png';
+import { useState, useEffect, ChangeEvent } from 'react';
+import { useRouter } from 'next/navigation';
+import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
+import { useWallet, WalletProvider, ConnectionProvider } from '@solana/wallet-adapter-react';
+import { WalletModalProvider, WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
+import '@solana/wallet-adapter-react-ui/styles.css';
+import bs58 from 'bs58';
+import { PublicKey } from '@solana/web3.js';
 
 interface Order {
   SellAmount: string;
@@ -24,19 +23,18 @@ interface ApiResponse {
   };
 }
 
- const Home = () => {
-   const { wallet } = useWallet();
-   const [address, setAddress] = useState('');
-   const [userMessage, setUserMessage] = useState('');
-   const [response, setResponse] = useState(null);
-   const [msg, setMsg] = useState('');
-   const { publicKey, signMessage } = useWallet();
-   const [currentPage, setCurrentPage] = useState(1);
-   const ordersPerPage = 10;
+const Home = () => {
+  const router = useRouter();
+  const { wallet, publicKey, signMessage } = useWallet();
+  const [address, setAddress] = useState('');
+  const [response, setResponse] = useState<ApiResponse['response'] | null>(null);
+  const [buyOrders, setBuyOrders] = useState<Order[]>([]);
+  const [sellOrders, setSellOrders] = useState<Order[]>([]);
+  const [msg, setMsg] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ordersPerPage = 10;
 
-    const handleAddressChange = (e: ChangeEvent<HTMLInputElement>) => setAddress(e.target.value);
-    const handleUserMessageChange = (e: ChangeEvent<HTMLInputElement>) => setUserMessage(e.target.value);
-  
+  const handleAddressChange = (e: ChangeEvent<HTMLInputElement>) => setAddress(e.target.value);
 
   const getCurrentTimestamp = () => {
     const now = new Date();
@@ -84,76 +82,65 @@ interface ApiResponse {
     }
   };
 
-   useEffect(() => {
-     console.log('Updated response:', response);
-   }, [response]);
+  useEffect(() => {
+    console.log('Updated response:', response);
+  }, [response]);
 
-    useEffect(() => {
-     const storedWallet = localStorage.getItem('wallet');
-     if (storedWallet) {
-       // The wallet will automatically connect if autoConnect is enabled
-       localStorage.setItem('wallet', storedWallet);
-     }
-   }, []);
+  useEffect(() => {
+    const storedWallet = localStorage.getItem('wallet');
+    if (storedWallet) {
+      localStorage.setItem('wallet', storedWallet);
+    }
+  }, []);
 
-   const indexOfLastBuyOrder = currentPage * ordersPerPage;
-   const indexOfFirstBuyOrder = indexOfLastBuyOrder - ordersPerPage;
-   const currentBuyOrders = response?.buyOrders ? response.buyOrders.slice(indexOfFirstBuyOrder, indexOfLastBuyOrder) : [];
-   const indexOfLastSellOrder = currentPage * ordersPerPage;
-   const indexOfFirstSellOrder = indexOfLastSellOrder - ordersPerPage;
-   const currentSellOrders = response?.sellOrders ? response.sellOrders.slice(indexOfFirstSellOrder, indexOfLastSellOrder) : [];
-
-   return (
-     <main className="flex min-h-screen flex-col items-center justify-between p-4 lg:p-24 bg-gray-800">
-       <div className="w-full lg:max-w-5xl flex justify-start items-center space-x-4">
-     {/*    <div className="h-16 w-16 relative">
-          <Image src={solanaLogo} alt="Solana Logo" layout="fill" objectFit="contain" />
-         </div> */}
-       </div>
-                 <div className="flex justify-center">
-                     <h1 className="flex justify-center mb-3 text-xl lg:text-5xl text-white-500 font-semibold">
-                         DEX-Book
-                     </h1>
-                 </div>
-       <div className="mb-8 w-full lg:w-full lg:max-w-5xl">
-         <div className="group rounded-lg border border-transparent px-5 py-4 transition-colors">
-           <h2 className="flex justify-center mb-3 text-xl lg:text-2xl text-white-500 font-semibold">
-             Token Address
-           </h2>
-           <div className="flex justify-center">
-             <input
-               type="text"
-               value={address}
-               onChange={handleAddressChange}
-               className="w-1/2 p-2 border rounded text-black mb-4"
-               placeholder="Enter token address"
-             />
-           </div>
-           <br />
-           <div className="flex justify-center">
-             <WalletMultiButton />
-           </div>
-           <br />
-           <div className="flex justify-center">
-             <button
-               onClick={handleGetLimitOrders}
-               className="max-w-xs mt-4 bg-blue-500 text-white p-2 rounded hover:bg-white hover:text-blue-500"
-             >
-               Get Limit Orders
-             </button>
-           </div>
-         </div>
-       </div>
-       {msg && (
-         <div className="w-full lg:w-full lg:max-w-5xl">
-           <h3 className="flex justify-center text-lg lg:text-xl font-semibold text-white-500">Message</h3>
-           <br />
-           <p className="flex justify-center text-md lg:text-lg text-white">{msg}</p>
-         </div>
-       )}
-       <br />
-       <br />
-       <br />
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-between p-4 lg:p-24 bg-gray-800">
+      <div className="w-full lg:max-w-5xl flex justify-start items-center space-x-4">
+      </div>
+      <div className="flex justify-center">
+        <h1 className="flex justify-center mb-3 text-xl lg:text-5xl text-white-500 font-semibold">
+          DEX-Book
+        </h1>
+      </div>
+      <div className="mb-8 w-full lg:w-full lg:max-w-5xl">
+        <div className="group rounded-lg border border-transparent px-5 py-4 transition-colors">
+          <h2 className="flex justify-center mb-3 text-xl lg:text-2xl text-white-500 font-semibold">
+            Token Address
+          </h2>
+          <div className="flex justify-center">
+            <input
+              type="text"
+              value={address}
+              onChange={handleAddressChange}
+              className="w-1/2 p-2 border rounded text-black mb-4"
+              placeholder="Enter token address"
+            />
+          </div>
+          <br />
+          <div className="flex justify-center">
+            <WalletMultiButton />
+          </div>
+          <br />
+          <div className="flex justify-center">
+            <button
+              onClick={handleGetLimitOrders}
+              className="max-w-xs mt-4 bg-blue-500 text-white p-2 rounded hover:bg-white hover:text-blue-500"
+            >
+              Get Limit Orders
+            </button>
+          </div>
+        </div>
+      </div>
+      {msg && (
+        <div className="w-full lg:w-full lg:max-w-5xl">
+          <h3 className="flex justify-center text-lg lg:text-xl font-semibold text-white-500">Message</h3>
+          <br />
+          <p className="flex justify-center text-md lg:text-lg text-white">{msg}</p>
+        </div>
+      )}
+      <br />
+      <br />
+      <br />
       {response && (
         <div className="w-full lg:w-full lg:max-w-5xl border border-blue-300 p-5 electric-border">
           <br />
@@ -240,28 +227,21 @@ interface ApiResponse {
       )}
     </main>
   );
- };
+};
 
- const App = () => {
-   const network = WalletAdapterNetwork.Mainnet;
-   const wallets = [new PhantomWalletAdapter(), new SolflareWalletAdapter({ network })];
+const App = () => {
+  const network = WalletAdapterNetwork.Mainnet;
+  const wallets = [new PhantomWalletAdapter(), new SolflareWalletAdapter({ network })];
 
-   return (
-     <ConnectionProvider endpoint={`https://quiet-thrilling-bush.solana-mainnet.quiknode.pro/517007fa157e2a1a8f992d28a500588227d9d6f2/`}>
-       <WalletProvider wallets={wallets} autoConnect>
-         <WalletModalProvider>
-           <Home />
-         </WalletModalProvider>
-       </WalletProvider>
-     </ConnectionProvider>
-   );
- };
-
-//const App = () => {
-
-//  return (
-//    <div>Hello World</div>
-//  );
-//};
+  return (
+    <ConnectionProvider endpoint={`https://quiet-thrilling-bush.solana-mainnet.quiknode.pro/517007fa157e2a1a8f992d28a500588227d9d6f2/`}>
+      <WalletProvider wallets={wallets} autoConnect>
+        <WalletModalProvider>
+          <Home />
+        </WalletModalProvider>
+      </WalletProvider>
+    </ConnectionProvider>
+  );
+};
 
 export default App;
