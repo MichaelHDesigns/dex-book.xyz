@@ -190,7 +190,7 @@ export async function getOrders(tokenAddress: string, account: string = '', sign
             };
         }));
 
-        db.end();
+   //     db.end();
 
         return { response: { buyOrders, sellOrders } };
 
