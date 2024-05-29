@@ -147,26 +147,26 @@ export async function getOrders(tokenAddress: string, account: string = '', sign
         throw Error (`Cannot query for address '${tokenAddress}'`);
     } 
     
-     else if (whitelistedTokens.includes(tokenAddress)) {
+    // else if (whitelistedTokens.includes(tokenAddress)) {
         
-     }
+    // }
 
-     try {
-         signatureBytes = base58.decode(signature);
-     } catch (err) {
-         throw Error (`Ugly Signature: ${err}`)
-     }
+    // try {
+    //     signatureBytes = base58.decode(signature);
+    // } catch (err) {
+    //     throw Error (`Ugly Signature: ${err}`)
+    // }
     
-     const currentTime = ;
+    // const currentTime = ;
 
-     for (let i = 0; i < TIME_TOLERANCE; i++) {
+    // for (let i = 0; i < TIME_TOLERANCE; i++) {
 
-     }
+    // }
 
-     const message = ``
+    // const message = ``
 
-     const signer = await verifySignature(message, signature, account);
-     console.log(signer);
+    // const signer = await verifySignature(message, signature, account);
+    // console.log(signer);
     // const chaosBalance = Number(await getTokenBalance(signer, CHAOS));
 
     // if (chaosBalance < CHAOS_THRESHOLD) {
