@@ -22,6 +22,7 @@
    const ordersPerPage = 10;
 
     const handleAddressChange = (e: ChangeEvent<HTMLInputElement>) => setAddress(e.target.value);
+    const handleUserMessageChange = (e: ChangeEvent<HTMLInputElement>) => setUserMessage(e.target.value);
   
 
     const getMinuteTimestamp = () => {
